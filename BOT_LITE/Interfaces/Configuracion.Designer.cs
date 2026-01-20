@@ -34,6 +34,8 @@
             this.label2 = new System.Windows.Forms.Label();
             this.btnguardar = new System.Windows.Forms.Button();
             this.btnBuscar = new System.Windows.Forms.Button();
+            this.txtUrlSri = new System.Windows.Forms.TextBox();
+            this.label3 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // txtConn
@@ -70,7 +72,7 @@
             // 
             // btnguardar
             // 
-            this.btnguardar.Location = new System.Drawing.Point(400, 116);
+            this.btnguardar.Location = new System.Drawing.Point(408, 155);
             this.btnguardar.Name = "btnguardar";
             this.btnguardar.Size = new System.Drawing.Size(75, 23);
             this.btnguardar.TabIndex = 6;
@@ -86,11 +88,29 @@
             this.btnBuscar.Text = "=";
             this.btnBuscar.UseVisualStyleBackColor = true;
             // 
+            // txtUrlSri
+            // 
+            this.txtUrlSri.Location = new System.Drawing.Point(12, 129);
+            this.txtUrlSri.Name = "txtUrlSri";
+            this.txtUrlSri.Size = new System.Drawing.Size(425, 20);
+            this.txtUrlSri.TabIndex = 8;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(14, 113);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(50, 13);
+            this.label3.TabIndex = 9;
+            this.label3.Text = "URL SRI";
+            // 
             // Configuracion
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(491, 151);
+            this.ClientSize = new System.Drawing.Size(495, 190);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.txtUrlSri);
             this.Controls.Add(this.btnBuscar);
             this.Controls.Add(this.btnguardar);
             this.Controls.Add(this.label2);
@@ -112,5 +132,7 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button btnguardar;
         private System.Windows.Forms.Button btnBuscar;
+        private System.Windows.Forms.TextBox txtUrlSri;
+        private System.Windows.Forms.Label label3;
     }
 }

@@ -26,6 +26,9 @@ namespace BOT_LITE
         private string downloadPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"DescargasBOT");
         private string _connectionString = "Server=localhost;Database=Prueba;User Id=sa;Password=B1Admin;";
 
+        private DateTime? _ultimaEjecucionAutomatica;
+        private bool _procesoEnCurso;
+
         private const int MaxReintentos = 3;
 
         private enum ResultadoConsulta
@@ -37,6 +40,7 @@ namespace BOT_LITE
         public Principal()
         {
             InitializeComponent();
+            InicializarProgramacion();
         }
 
         private void Principal_Load(object sender, EventArgs e)
@@ -46,53 +50,7 @@ namespace BOT_LITE
 
         private async void btnProceso_Click(object sender, EventArgs e)
         {
-            btnProceso.Enabled = false;
-
-            try
-            {
-                var dt = dtgClientes.DataSource as DataTable;
-                if (dt == null)
-                    throw new InvalidOperationException("No hay clientes cargados para procesar.");
-
-                foreach (DataRow row in dt.Rows)
-                {
-                    if (!EsValorYN(row, "Activo"))
-                        continue;
-
-                    string usuario = row["Usuario"]?.ToString();
-                    string nombre = row["NombUsuario"]?.ToString();
-                    string ciAdicional = row["ciAdicional"]?.ToString();
-                    string password = row["Clave SRI"]?.ToString();
-
-                    foreach (var periodo in ConstruirPeriodosConsulta(row))
-                    {
-                        foreach (var tipo in ObtenerTiposHabilitados(row))
-                        {
-                            var parametros = new ParametrosConsulta
-                            {
-                                Anio = periodo.Year.ToString(),
-                                Mes = periodo.Month.ToString(),
-                                Dia = "0",
-                                Tipo = tipo
-                            };
-
-                            await EjecutarProcesoConReintentosAsync(url, false, usuario, ciAdicional, password, nombre, parametros);
-                        }
-                    }
-                }
-
-                MessageBox.Show("Proceso finalizado correctamente", "OK",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                btnProceso.Enabled = true;
-            }
+            await EjecutarProcesoManualAsync();
         }
 
         private async Task EjecutarProcesoConReintentosAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros)
@@ -396,5 +354,111 @@ namespace BOT_LITE
         {
 
         }
+
+        private void InicializarProgramacion()
+        {
+            dtpHoraProgramada.Format = DateTimePickerFormat.Time;
+            dtpHoraProgramada.ShowUpDown = true;
+            timerProgramacion.Interval = 30000;
+            timerProgramacion.Start();
+        }
+
+        private async void timerProgramacion_Tick(object sender, EventArgs e)
+        {
+            if (!chkAutoEjecutar.Checked || _procesoEnCurso)
+                return;
+
+            DateTime ahora = DateTime.Now;
+            DateTime horaProgramada = dtpHoraProgramada.Value;
+            DateTime objetivo = new DateTime(ahora.Year, ahora.Month, ahora.Day, horaProgramada.Hour, horaProgramada.Minute, 0);
+
+            if (ahora < objetivo)
+                return;
+
+            if (_ultimaEjecucionAutomatica.HasValue && _ultimaEjecucionAutomatica.Value.Date == ahora.Date)
+                return;
+
+            await EjecutarProcesoAutomaticoAsync();
+        }
+
+        private async Task EjecutarProcesoManualAsync()
+        {
+            await EjecutarProcesoAsync(true);
+        }
+
+        private async Task EjecutarProcesoAutomaticoAsync()
+        {
+            await EjecutarProcesoAsync(false);
+            _ultimaEjecucionAutomatica = DateTime.Now;
+        }
+
+        private async Task EjecutarProcesoAsync(bool mostrarMensajes)
+        {
+            if (_procesoEnCurso)
+                return;
+
+            _procesoEnCurso = true;
+            btnProceso.Enabled = false;
+
+            try
+            {
+                var dt = dtgClientes.DataSource as DataTable;
+                if (dt == null)
+                    throw new InvalidOperationException("No hay clientes cargados para procesar.");
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    if (!EsValorYN(row, "Activo"))
+                        continue;
+
+                    string usuario = row["Usuario"]?.ToString();
+                    string nombre = row["NombUsuario"]?.ToString();
+                    string ciAdicional = row["ciAdicional"]?.ToString();
+                    string password = row["Clave SRI"]?.ToString();
+
+                    foreach (var periodo in ConstruirPeriodosConsulta(row))
+                    {
+                        foreach (var tipo in ObtenerTiposHabilitados(row))
+                        {
+                            var parametros = new ParametrosConsulta
+                            {
+                                Anio = periodo.Year.ToString(),
+                                Mes = periodo.Month.ToString(),
+                                Dia = "0",
+                                Tipo = tipo
+                            };
+
+                            await EjecutarProcesoConReintentosAsync(url, false, usuario, ciAdicional, password, nombre, parametros);
+                        }
+                    }
+                }
+
+                if (mostrarMensajes)
+                {
+                    MessageBox.Show("Proceso finalizado correctamente", "OK",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (mostrarMensajes)
+                {
+                    MessageBox.Show(ex.Message, "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                else
+                {
+                    MessageBox.Show($"Ejecución automática fallida: {ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            finally
+            {
+                btnProceso.Enabled = true;
+                _procesoEnCurso = false;
+            }
+        }
+
+
     }
 }

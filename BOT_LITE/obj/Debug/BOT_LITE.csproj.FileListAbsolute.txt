@@ -1,0 +1,11 @@
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\bin\Debug\BOT_LITE.exe.config
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\bin\Debug\BOT_LITE.exe
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\bin\Debug\BOT_LITE.pdb
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\obj\Debug\BOT_LITE.csproj.AssemblyReference.cache
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\obj\Debug\BOT_LITE.Properties.Resources.resources
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\obj\Debug\BOT_LITE.csproj.GenerateResource.cache
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\obj\Debug\BOT_LITE.csproj.CoreCompileInputs.cache
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\obj\Debug\BOT_LITE.exe
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\obj\Debug\BOT_LITE.pdb
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\obj\Debug\BOT_LITE.exe.config
+C:\Users\willi\Desktop\BOT_LITE\BOT_LITE\obj\Debug\BOT_LITE.Principal.resources

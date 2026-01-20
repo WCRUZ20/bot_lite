@@ -356,7 +356,7 @@ namespace BOT_LITE
             int mesesAnteriores = ObtenerEntero(row, "Meses consulta");
             int diasPermitidos = ObtenerEntero(row, "Días permitidos");
 
-            if (mesesAnteriores > 0 && hoy.Day <= diasPermitidos)
+            if (mesesAnteriores > 0 && (hoy.Day <= diasPermitidos || diasPermitidos == 0))
             {
                 for (int i = 1; i <= mesesAnteriores; i++)
                     periodos.Add(inicioMes.AddMonths(-i));

@@ -1,9 +1,11 @@
 ﻿using BOT_LITE.Automation;
 using BOT_LITE.Automation.Models;
+using BOT_LITE.Interfaces;
 using Microsoft.Playwright;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Drawing;
@@ -18,12 +20,13 @@ namespace BOT_LITE
 {
     public partial class Principal : Form
     {
+        private const string DownloadFolderName = "DescargasBOT";
         private string url = "https://srienlinea.sri.gob.ec/tuportal-internet/accederAplicacion.jspa?redireccion=57&idGrupo=55";
         //private string nombre_empresa = "KARCHER";
         //private string usuario = "0992793015001";
         //private string ciAdicional = "0927098244";
         //private string password = "Karcher2024*";
-        private string downloadPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),"DescargasBOT");
+        private string downloadPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), DownloadFolderName);
         private string _connectionString = "Server=localhost;Database=Prueba;User Id=sa;Password=B1Admin;";
 
         private DateTime? _ultimaEjecucionAutomatica;
@@ -41,11 +44,34 @@ namespace BOT_LITE
         {
             InitializeComponent();
             InicializarProgramacion();
+            CargarConfiguracion();
         }
 
         private void Principal_Load(object sender, EventArgs e)
         {
             CargarClientes();
+        }
+
+        private void CargarConfiguracion()
+        {
+            var configUrl = ConfigurationManager.AppSettings["UrlSri"];
+            if (!string.IsNullOrWhiteSpace(configUrl))
+            {
+                url = configUrl;
+            }
+
+            var configConnection = ConfigurationManager.AppSettings["SqlConnectionString"];
+            if (!string.IsNullOrWhiteSpace(configConnection))
+            {
+                _connectionString = configConnection;
+            }
+
+            var basePath = ConfigurationManager.AppSettings["RutaArchivos"];
+            if (string.IsNullOrWhiteSpace(basePath))
+            {
+                downloadPath = Path.Combine(basePath, DownloadFolderName);
+            }
+
         }
 
         private async void btnProceso_Click(object sender, EventArgs e)
@@ -352,7 +378,10 @@ namespace BOT_LITE
 
         private void btnConfig_Click(object sender, EventArgs e)
         {
-
+            using (var frm = new Configuracion())
+            {
+                frm.ShowDialog(this); // bloquea el form padre
+            }
         }
 
         private void InicializarProgramacion()

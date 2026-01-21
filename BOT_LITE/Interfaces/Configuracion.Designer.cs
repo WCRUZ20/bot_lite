@@ -78,6 +78,7 @@
             this.btnguardar.TabIndex = 6;
             this.btnguardar.Text = "Guardar";
             this.btnguardar.UseVisualStyleBackColor = true;
+            this.btnguardar.Click += new System.EventHandler(this.btnguardar_Click);
             // 
             // btnBuscar
             // 
@@ -87,6 +88,7 @@
             this.btnBuscar.TabIndex = 7;
             this.btnBuscar.Text = "=";
             this.btnBuscar.UseVisualStyleBackColor = true;
+            this.btnBuscar.Click += new System.EventHandler(this.btnBuscar_Click);
             // 
             // txtUrlSri
             // 
@@ -119,6 +121,7 @@
             this.Controls.Add(this.txtConn);
             this.Name = "Configuracion";
             this.Text = "Configuracion";
+            this.Load += new System.EventHandler(this.Configuracion_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 

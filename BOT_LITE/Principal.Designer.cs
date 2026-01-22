@@ -42,6 +42,7 @@
             // 
             // btnProceso
             // 
+            this.btnProceso.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnProceso.BackColor = System.Drawing.Color.Green;
             this.btnProceso.FlatAppearance.BorderSize = 0;
             this.btnProceso.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
@@ -60,6 +61,9 @@
             // 
             // dtgClientes
             // 
+            this.dtgClientes.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.dtgClientes.BackgroundColor = System.Drawing.Color.White;
             this.dtgClientes.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.dtgClientes.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
@@ -71,6 +75,7 @@
             // 
             // btnActualizar
             // 
+            this.btnActualizar.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)));
             this.btnActualizar.BackColor = System.Drawing.Color.Gray;
             this.btnActualizar.FlatAppearance.BorderSize = 0;
             this.btnActualizar.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Silver;
@@ -88,6 +93,7 @@
             // 
             // btnConfig
             // 
+            this.btnConfig.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)));
             this.btnConfig.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.btnConfig.FlatAppearance.BorderSize = 0;
             this.btnConfig.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
@@ -105,6 +111,7 @@
             // 
             // chkAutoEjecutar
             // 
+            this.chkAutoEjecutar.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.chkAutoEjecutar.AutoSize = true;
             this.chkAutoEjecutar.Location = new System.Drawing.Point(315, 39);
             this.chkAutoEjecutar.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -116,6 +123,7 @@
             // 
             // dtpHoraProgramada
             // 
+            this.dtpHoraProgramada.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.dtpHoraProgramada.Format = System.Windows.Forms.DateTimePickerFormat.Time;
             this.dtpHoraProgramada.Location = new System.Drawing.Point(572, 37);
             this.dtpHoraProgramada.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -126,6 +134,7 @@
             // 
             // lblHoraProgramada
             // 
+            this.lblHoraProgramada.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.lblHoraProgramada.AutoSize = true;
             this.lblHoraProgramada.Location = new System.Drawing.Point(428, 39);
             this.lblHoraProgramada.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);

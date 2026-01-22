@@ -79,24 +79,39 @@ namespace BOT_LITE
             await EjecutarProcesoManualAsync();
         }
 
-        private async Task EjecutarProcesoConReintentosAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros)
+        private async Task<bool> EjecutarProcesoConReintentosAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros)
         {
+            Exception lastEx = null;
+
             for (int intento = 1; intento <= MaxReintentos; intento++)
             {
                 try
                 {
                     var resultado = await EjecutarProcesoAsync(pageUrl, headless, usuario, ciAdicional, password, nombre, parametros);
-                    if (resultado == ResultadoConsulta.SinDatos)
-                        return;
 
-                    return;
+                    if (resultado == ResultadoConsulta.SinDatos)
+                        return true; // OK: no hay datos, no es error
+
+                    return true; // OK: descargó
                 }
-                catch
+                catch (Exception ex)
                 {
-                    if (intento == MaxReintentos)
-                        throw;
+                    lastEx = ex;
+
+                    // (opcional) log visual o a archivo
+                    // LoggerHelper.Log(_logPath, $"[{usuario}] Falló intento {intento}/{MaxReintentos} " +
+                    //    $"({parametros.Anio}-{parametros.Mes}, {parametros.Tipo?.Value}): {ex.Message}");
+
+                    // (opcional) pequeña espera entre reintentos para no “pegarle” al SRI
+                    //await Task.Delay(1500);
                 }
             }
+
+            // ❗️CLAVE: NO hacer throw aquí. Solo marcar fallo y continuar.
+            // LoggerHelper.Log(_logPath, $"[{usuario}] ❌ Falló la combinación luego de {MaxReintentos} intentos: " +
+            //    $"{parametros.Anio}-{parametros.Mes} Tipo={parametros.Tipo?.Value}. Error: {lastEx?.Message}");
+
+            return false;
         }
 
         private async Task<ResultadoConsulta> EjecutarProcesoAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros)
@@ -185,12 +200,23 @@ namespace BOT_LITE
 
             // CONSULTAR
             await actions.ClickAsync("#frmPrincipal\\:btnBuscar");
+            // CONSULTAR (con detección y recuperación de "captcha incorrecta")
+            //await ConsultarConRecuperacionCaptchaAsync(session.Page, actions, "#frmPrincipal\\:btnBuscar");
 
             bool sinDatos = await WaitHelper.ExistsAsync(
                 session.Page,
                 "text=No existen datos",
                 3000
             );
+
+            bool captchaincorrecta = await WaitHelper.ExistsAsync(
+                session.Page,
+                "text=Captcha incorrecta",
+                3000
+            );
+
+            if (captchaincorrecta)
+                await ConsultarConRecuperacionCaptchaAsync(session.Page, actions, "#frmPrincipal\\:btnBuscar");
 
             if (sinDatos)
                 return ResultadoConsulta.SinDatos;
@@ -488,6 +514,152 @@ namespace BOT_LITE
             }
         }
 
+        private async Task ConsultarConRecuperacionCaptchaAsync(IPage page, PageActions actions, string btnBuscarSelector)
+        {
+            // 1) Intento normal
+            await actions.ClickAsync(btnBuscarSelector);
 
+            // 2) Espera corta para ver si aparece "captcha incorrecta"
+            //    (importante: que el DOM tenga tiempo de pintar el mensaje)
+            await page.WaitForTimeoutAsync(6000);
+
+            // 3) Si detecta mensaje de captcha incorrecta, forzar estrategias
+            bool captchaIncorrecta = await ExisteCaptchaIncorrectaAsync(page, 6000);
+            if (!captchaIncorrecta)
+                return;
+
+            // Estrategias más efectivas: intentos cortos con esperas, sin “romper” el flujo
+            var estrategias = ConstruirEstrategiasForzadas(btnBuscarSelector);
+
+            for (int i = 0; i < estrategias.Count; i++)
+            {
+                // Pequeña espera entre estrategias (deja respirar a PrimeFaces/AJAX)
+                await page.WaitForTimeoutAsync(6000);
+
+                await estrategias[i](page);
+
+                // Esperar a que el request/DOM reaccione
+                await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+                await page.WaitForTimeoutAsync(9000);
+
+                // Si ya no está el mensaje, salir
+                captchaIncorrecta = await ExisteCaptchaIncorrectaAsync(page, 1200);
+                if (!captchaIncorrecta)
+                    return;
+            }
+
+            // Si llega aquí, sigue con captcha incorrecta:
+            // NO lanzamos excepción aquí; dejamos que tu lógica global de reintentos maneje el fallo si aplica
+        }
+
+        private async Task<bool> ExisteCaptchaIncorrectaAsync(IPage page, int timeoutMs)
+        {
+            // Buscamos texto que “contenga” captcha incorrecta (case-insensitive)
+            // Espera hasta timeoutMs para capturar el render del mensaje
+            try
+            {
+                // Preferimos locator con regex por robustez (a veces hay espacios o tildes)
+                var locator = page.Locator("text=/captcha\\s+incorrecta/i");
+                await locator.First.WaitForAsync(new LocatorWaitForOptions
+                {
+                    Timeout = timeoutMs,
+                    State = WaitForSelectorState.Visible
+                });
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private List<Func<IPage, Task>> ConstruirEstrategiasForzadas(string btnBuscarSelector)
+        {
+            return new List<Func<IPage, Task>>
+            {
+                // 1) Scroll + focus + click Playwright
+                async (page) =>
+                {
+                    await page.EvaluateAsync(@"(sel) => {
+                        const el = document.querySelector(sel);
+                        if (!el) return;
+                        el.scrollIntoView({ block: 'center', inline: 'center' });
+                        el.focus();
+                    }", btnBuscarSelector);
+
+                    await page.ClickAsync(btnBuscarSelector, new PageClickOptions { Force = true, Timeout = 5000 });
+                },
+
+                // 2) Click con JS directo
+                async (page) =>
+                {
+                    await page.EvaluateAsync(@"(sel) => {
+                        const el = document.querySelector(sel);
+                        if (!el) return;
+                        el.scrollIntoView({ block: 'center', inline: 'center' });
+                        el.click();
+                    }", btnBuscarSelector);
+                },
+
+                // 3) Disparar MouseEvents (mousedown/up/click) para forzar listeners
+                async (page) =>
+                {
+                    await page.EvaluateAsync(@"(sel) => {
+                        const el = document.querySelector(sel);
+                        if (!el) return;
+                        el.scrollIntoView({ block: 'center', inline: 'center' });
+
+                        const fire = (type) => el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+                        fire('mousedown');
+                        fire('mouseup');
+                        fire('click');
+                    }", btnBuscarSelector);
+                },
+
+                // 4) Enter sobre el botón (a veces dispara submit/PrimeFaces)
+                async (page) =>
+                {
+                    await page.FocusAsync(btnBuscarSelector);
+                    await page.Keyboard.PressAsync("Enter");
+                },
+
+                // 5) Submit del formulario más cercano
+                async (page) =>
+                {
+                    await page.EvaluateAsync(@"(sel) => {
+                        const el = document.querySelector(sel);
+                        if (!el) return;
+
+                        const form = el.closest('form');
+                        if (!form) return;
+
+                        // Si existe requestSubmit, es lo más “real”
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit();
+                        } else {
+                            form.submit();
+                        }
+                    }", btnBuscarSelector);
+                },
+
+                // 6) Intento PrimeFaces.ab si el onclick lo contiene
+                async (page) =>
+                {
+                    await page.EvaluateAsync(@"(sel) => {
+                        const el = document.querySelector(sel);
+                        if (!el) return;
+
+                        const onclick = el.getAttribute('onclick') || '';
+                        if (onclick.includes('PrimeFaces.ab')) {
+                            try { eval(onclick); } catch (e) {}
+                        } else {
+                            // fallback: click
+                            el.click();
+                        }
+                    }", btnBuscarSelector);
+                },
+            };
+        }
     }
 }

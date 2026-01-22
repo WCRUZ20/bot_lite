@@ -1,6 +1,7 @@
 ﻿using BOT_LITE.Automation;
 using BOT_LITE.Automation.Models;
 using BOT_LITE.Interfaces;
+using BOT_LITE.Licensing;
 using Microsoft.Playwright;
 using System;
 using System.Collections.Generic;
@@ -29,11 +30,16 @@ namespace BOT_LITE
         //private string password = "Karcher2024*";
         private string downloadPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), DownloadFolderName);
         private string _connectionString = "Server=localhost;Database=Prueba;User Id=sa;Password=B1Admin;";
+        private string supabaseurl_ = "https://hgwbwaisngbyzaatwndb.supabase.co";
+        private string annonkey_ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhnd2J3YWlzbmdieXphYXR3bmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDIwMDYsImV4cCI6MjA3MjYxODAwNn0.WgHmnqOwKCvzezBM1n82oSpAMYCT5kNCb8cLGRMIsbk";
 
         private DateTime? _ultimaEjecucionAutomatica;
         private bool _procesoEnCurso;
+        private DateTime? _ultimaValidacionLicencia;
+        private LicenseValidationResult _estadoLicencia;
 
         private const int MaxReintentos = 3;
+        private const int MinutosCacheLicencia = 10;
 
         private enum ResultadoConsulta
         {
@@ -453,6 +459,11 @@ namespace BOT_LITE
             _procesoEnCurso = true;
             btnProceso.Enabled = false;
 
+            if (!await ValidarLicenciaAsync(mostrarMensajes))
+            {
+                return;
+            }
+
             try
             {
                 var dt = dtgClientes.DataSource as DataTable;
@@ -697,5 +708,60 @@ namespace BOT_LITE
             return builder.ToString().Trim();
         }
 
+        private async Task<bool> ValidarLicenciaAsync(bool mostrarMensajes)
+        {
+            if (_ultimaValidacionLicencia.HasValue
+                && _estadoLicencia != null
+                && (DateTime.Now - _ultimaValidacionLicencia.Value).TotalMinutes < MinutosCacheLicencia)
+            {
+                return _estadoLicencia.IsValid && _estadoLicencia.IsActive;
+            }
+
+            var supabaseUrl = supabaseurl_;
+            var supabaseAnonKey = annonkey_;
+            var userCode = ConfigurationManager.AppSettings["LicenseUserCode"];
+            var password = ConfigurationManager.AppSettings["LicensePassword"];
+
+            if (string.IsNullOrWhiteSpace(userCode) || string.IsNullOrWhiteSpace(password))
+            {
+                if (mostrarMensajes)
+                {
+                    MessageBox.Show("Configura Supabase y la licencia en Configuración antes de ejecutar.",
+                        "Licencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+
+                return false;
+            }
+
+            try
+            {
+                var client = new SupabaseLicenseClient(supabaseUrl, supabaseAnonKey);
+                _estadoLicencia = await client.ValidateAsync(userCode, password);
+                _ultimaValidacionLicencia = DateTime.Now;
+
+                if (!_estadoLicencia.IsValid || !_estadoLicencia.IsActive)
+                {
+                    if (mostrarMensajes)
+                    {
+                        MessageBox.Show(_estadoLicencia.Message ?? "Licencia inactiva.",
+                            "Licencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (mostrarMensajes)
+                {
+                    MessageBox.Show($"No se pudo validar la licencia: {ex.Message}",
+                        "Licencia", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+                return false;
+            }
+        }
     }
 }

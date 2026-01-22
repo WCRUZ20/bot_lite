@@ -135,6 +135,8 @@
     <Compile Include="Interfaces\Configuracion.Designer.cs">
       <DependentUpon>Configuracion.cs</DependentUpon>
     </Compile>
+    <Compile Include="Licensing\LicenseValidationResult.cs" />
+    <Compile Include="Licensing\SupabaseLicenseClient.cs" />
     <Compile Include="Principal.cs">
       <SubType>Form</SubType>
     </Compile>

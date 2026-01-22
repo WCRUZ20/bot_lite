@@ -26,6 +26,10 @@ namespace BOT_LITE.Interfaces
             ActualizarSetting(settings, "SqlConnectionString", txtConn.Text?.Trim());
             ActualizarSetting(settings, "RutaArchivos", txtRuta.Text?.Trim());
             ActualizarSetting(settings, "UrlSri", txtUrlSri.Text?.Trim());
+            ActualizarSetting(settings, "SupabaseUrl", txtSupabaseUrl.Text?.Trim());
+            ActualizarSetting(settings, "SupabaseAnonKey", txtSupabaseKey.Text?.Trim());
+            ActualizarSetting(settings, "LicenseUserCode", txtLicenseUser.Text?.Trim());
+            ActualizarSetting(settings, "LicensePassword", txtLicensePassword.Text);
 
             config.Save(ConfigurationSaveMode.Modified);
             ConfigurationManager.RefreshSection("appSettings");
@@ -60,6 +64,10 @@ namespace BOT_LITE.Interfaces
             txtConn.Text = ConfigurationManager.AppSettings["SqlConnectionString"] ?? string.Empty;
             txtRuta.Text = ConfigurationManager.AppSettings["RutaArchivos"] ?? string.Empty;
             txtUrlSri.Text = ConfigurationManager.AppSettings["UrlSri"] ?? string.Empty;
+            txtSupabaseUrl.Text = ConfigurationManager.AppSettings["SupabaseUrl"] ?? string.Empty;
+            txtSupabaseKey.Text = ConfigurationManager.AppSettings["SupabaseAnonKey"] ?? string.Empty;
+            txtLicenseUser.Text = ConfigurationManager.AppSettings["LicenseUserCode"] ?? string.Empty;
+            txtLicensePassword.Text = ConfigurationManager.AppSettings["LicensePassword"] ?? string.Empty;
 
         }
 

@@ -36,6 +36,14 @@
             this.btnBuscar = new System.Windows.Forms.Button();
             this.txtUrlSri = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
+            this.txtSupabaseUrl = new System.Windows.Forms.TextBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.txtSupabaseKey = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.txtLicenseUser = new System.Windows.Forms.TextBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.txtLicensePassword = new System.Windows.Forms.TextBox();
+            this.label7 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // txtConn
@@ -72,7 +80,7 @@
             // 
             // btnguardar
             // 
-            this.btnguardar.Location = new System.Drawing.Point(408, 155);
+            this.btnguardar.Location = new System.Drawing.Point(400, 306);
             this.btnguardar.Name = "btnguardar";
             this.btnguardar.Size = new System.Drawing.Size(75, 23);
             this.btnguardar.TabIndex = 6;
@@ -106,11 +114,85 @@
             this.label3.TabIndex = 9;
             this.label3.Text = "URL SRI";
             // 
+            // txtSupabaseUrl
+            // 
+            this.txtSupabaseUrl.Location = new System.Drawing.Point(12, 178);
+            this.txtSupabaseUrl.Name = "txtSupabaseUrl";
+            this.txtSupabaseUrl.Size = new System.Drawing.Size(463, 20);
+            this.txtSupabaseUrl.TabIndex = 10;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(14, 162);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(80, 13);
+            this.label4.TabIndex = 11;
+            this.label4.Text = "Supabase URL";
+            // 
+            // txtSupabaseKey
+            // 
+            this.txtSupabaseKey.Location = new System.Drawing.Point(12, 226);
+            this.txtSupabaseKey.Name = "txtSupabaseKey";
+            this.txtSupabaseKey.Size = new System.Drawing.Size(463, 20);
+            this.txtSupabaseKey.TabIndex = 12;
+            this.txtSupabaseKey.UseSystemPasswordChar = true;
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(14, 210);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(104, 13);
+            this.label5.TabIndex = 13;
+            this.label5.Text = "Supabase Anon Key";
+            // 
+            // txtLicenseUser
+            // 
+            this.txtLicenseUser.Location = new System.Drawing.Point(12, 272);
+            this.txtLicenseUser.Name = "txtLicenseUser";
+            this.txtLicenseUser.Size = new System.Drawing.Size(220, 20);
+            this.txtLicenseUser.TabIndex = 14;
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(14, 255);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(82, 13);
+            this.label6.TabIndex = 15;
+            this.label6.Text = "Usuario licencia";
+            // 
+            // txtLicensePassword
+            // 
+            this.txtLicensePassword.Location = new System.Drawing.Point(255, 272);
+            this.txtLicensePassword.Name = "txtLicensePassword";
+            this.txtLicensePassword.Size = new System.Drawing.Size(220, 20);
+            this.txtLicensePassword.TabIndex = 16;
+            this.txtLicensePassword.UseSystemPasswordChar = true;
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(257, 255);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(73, 13);
+            this.label7.TabIndex = 17;
+            this.label7.Text = "Clave licencia";
+            // 
             // Configuracion
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(495, 190);
+            this.ClientSize = new System.Drawing.Size(495, 341);
+            this.Controls.Add(this.label7);
+            this.Controls.Add(this.txtLicensePassword);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.txtLicenseUser);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.txtSupabaseKey);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.txtSupabaseUrl);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.txtUrlSri);
             this.Controls.Add(this.btnBuscar);
@@ -137,5 +219,13 @@
         private System.Windows.Forms.Button btnBuscar;
         private System.Windows.Forms.TextBox txtUrlSri;
         private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.TextBox txtSupabaseUrl;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.TextBox txtSupabaseKey;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox txtLicenseUser;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.TextBox txtLicensePassword;
+        private System.Windows.Forms.Label label7;
     }
 }

@@ -23,15 +23,17 @@ namespace BOT_LITE
 {
     public partial class Principal : Form
     {
-        private const string DownloadFolderName = "DescargasBOT";
+        private const string DownloadFolderName = "Carga_Botcito";
         private const string LogFolderName = "Logs";
         private string url = "https://srienlinea.sri.gob.ec/tuportal-internet/accederAplicacion.jspa?redireccion=57&idGrupo=55";
         //private string nombre_empresa = "KARCHER";
         //private string usuario = "0992793015001";
         //private string ciAdicional = "0927098244";
         //private string password = "Karcher2024*";
-        private string downloadPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), DownloadFolderName);
-        private string _connectionString = "Server=localhost;Database=Prueba;User Id=sa;Password=B1Admin;";
+        private string downloadPath = "";
+            //Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), DownloadFolderName);
+        private string _connectionString = "";
+            //"Server=localhost;Database=Prueba;User Id=sa;Password=B1Admin;";
         private string supabaseurl_ = "https://hgwbwaisngbyzaatwndb.supabase.co";
         private string annonkey_ = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhnd2J3YWlzbmdieXphYXR3bmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDIwMDYsImV4cCI6MjA3MjYxODAwNn0.WgHmnqOwKCvzezBM1n82oSpAMYCT5kNCb8cLGRMIsbk";
 
@@ -40,6 +42,8 @@ namespace BOT_LITE
         private CancellationTokenSource _cancellationTokenSource;
         private DateTime? _ultimaValidacionLicencia;
         private LicenseValidationResult _estadoLicencia;
+        private readonly object _lockResultados = new object();
+        private List<ResultadoProcesoItem> _resultados = new List<ResultadoProcesoItem>();
 
         private const int MaxReintentos = 3;
         private const int MinutosCacheLicencia = 10;
@@ -107,7 +111,7 @@ namespace BOT_LITE
             await EjecutarProcesoManualAsync();
         }
 
-        private async Task<bool> EjecutarProcesoConReintentosAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros, CancellationToken cancellationToken)
+        private async Task<EstadoResultado> EjecutarProcesoConReintentosAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros, CancellationToken cancellationToken)
         {
             Exception lastEx = null;
 
@@ -121,11 +125,11 @@ namespace BOT_LITE
                     if (resultado == ResultadoConsulta.SinDatos)
                     {
                         LogCliente(usuario, nombre, $"¨Sin datos {intento}/{MaxReintentos} ({parametros.Anio}-{parametros.Mes}, {parametros.Tipo?.Value})");
-                        return true; // OK: no hay datos, no es error
+                        return EstadoResultado.SinDatos; // OK: no hay datos, no es error
                     }
 
                     LogCliente(usuario, nombre, $"¨Descarga exitosa {intento}/{MaxReintentos} ({parametros.Anio}-{parametros.Mes}, {parametros.Tipo?.Value})");
-                    return true; // OK: descargó
+                    return EstadoResultado.Exitoso; // OK: descargó
                 }
                 catch (OperationCanceledException)
                 {
@@ -141,7 +145,7 @@ namespace BOT_LITE
 
             LogCliente(usuario, nombre, $"❌ Falló la combinación luego de {MaxReintentos} intentos: {parametros.Anio}-{parametros.Mes} Tipo={parametros.Tipo?.Value}. Error: {lastEx?.Message}");
 
-            return false;
+            return EstadoResultado.Fallido;
         }
 
         private async Task<ResultadoConsulta> EjecutarProcesoAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros, CancellationToken cancellationToken)
@@ -236,12 +240,6 @@ namespace BOT_LITE
             // CONSULTAR (con detección y recuperación de "captcha incorrecta")
             //await ConsultarConRecuperacionCaptchaAsync(session.Page, actions, "#frmPrincipal\\:btnBuscar");
 
-            bool sinDatos = await WaitHelper.ExistsAsync(
-                session.Page,
-                "text=No existen datos",
-                3000
-            );
-
             bool captchaincorrecta = await WaitHelper.ExistsAsync(
                 session.Page,
                 "text=Captcha incorrecta",
@@ -250,6 +248,12 @@ namespace BOT_LITE
 
             if (captchaincorrecta)
                 await ConsultarConRecuperacionCaptchaAsync(session.Page, actions, "#frmPrincipal\\:btnBuscar");
+
+            bool sinDatos = await WaitHelper.ExistsAsync(
+                session.Page,
+                "text=No existen datos",
+                3000
+            );
 
             if (sinDatos)
                 return ResultadoConsulta.SinDatos;
@@ -471,6 +475,7 @@ namespace BOT_LITE
             _procesoEnCurso = true;
             _cancellationTokenSource = new CancellationTokenSource();
             ActualizarEstadoBotonProceso(true);
+            ReiniciarResultados();
 
             try
             {
@@ -495,6 +500,7 @@ namespace BOT_LITE
                     MessageBox.Show("Proceso finalizado correctamente", "OK",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
+                MostrarResultadosFinales();
             }
             catch(OperationCanceledException)
             {
@@ -570,10 +576,62 @@ namespace BOT_LITE
                             Tipo = tipo
                         };
 
-                        await EjecutarProcesoConReintentosAsync(url, false, cliente.Usuario, cliente.CiAdicional, cliente.Password, cliente.Nombre, parametros, cancellationToken);
+                        var estado = await EjecutarProcesoConReintentosAsync(url, false, cliente.Usuario, cliente.CiAdicional, cliente.Password, cliente.Nombre, parametros, cancellationToken);
+                        RegistrarResultado(cliente, parametros, estado);
                     }
                 }
             }
+        }
+
+        private void ReiniciarResultados()
+        {
+            lock (_lockResultados)
+            {
+                _resultados = new List<ResultadoProcesoItem>();
+            }
+        }
+
+        private void RegistrarResultado(ClienteProcesable cliente, ParametrosConsulta parametros, EstadoResultado estado)
+        {
+            var item = new ResultadoProcesoItem
+            {
+                Usuario = cliente.Usuario,
+                Nombre = cliente.Nombre,
+                CiAdicional = cliente.CiAdicional,
+                Password = cliente.Password,
+                Anio = parametros.Anio,
+                Mes = parametros.Mes,
+                Documento = parametros.Tipo?.Nombre ?? parametros.Tipo?.Value,
+                Estado = estado,
+                Parametros = parametros
+            };
+
+            lock (_lockResultados)
+            {
+                _resultados.Add(item);
+            }
+        }
+
+        private void MostrarResultadosFinales()
+        {
+            List<ResultadoProcesoItem> resultados;
+            lock (_lockResultados)
+            {
+                resultados = _resultados.ToList();
+            }
+
+            if (!resultados.Any())
+                return;
+
+            using (var form = new ResultadoProcesoForm(resultados, ReintentarResultadoAsync))
+            {
+                form.ShowDialog(this);
+            }
+        }
+
+        private Task<EstadoResultado> ReintentarResultadoAsync(ResultadoProcesoItem item)
+        {
+            return EjecutarProcesoConReintentosAsync(url, false, item.Usuario, item.CiAdicional, item.Password, item.Nombre, item.Parametros, CancellationToken.None);
         }
 
         private void SolicitarCancelacionProceso()

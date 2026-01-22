@@ -201,6 +201,8 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtRuta);
             this.Controls.Add(this.txtConn);
+            this.MaximumSize = new System.Drawing.Size(511, 380);
+            this.MinimumSize = new System.Drawing.Size(511, 380);
             this.Name = "Configuracion";
             this.Text = "Configuracion";
             this.Load += new System.EventHandler(this.Configuracion_Load);

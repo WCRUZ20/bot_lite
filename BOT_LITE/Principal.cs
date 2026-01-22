@@ -21,6 +21,7 @@ namespace BOT_LITE
     public partial class Principal : Form
     {
         private const string DownloadFolderName = "DescargasBOT";
+        private const string LogFolderName = "Logs";
         private string url = "https://srienlinea.sri.gob.ec/tuportal-internet/accederAplicacion.jspa?redireccion=57&idGrupo=55";
         //private string nombre_empresa = "KARCHER";
         //private string usuario = "0992793015001";
@@ -90,26 +91,23 @@ namespace BOT_LITE
                     var resultado = await EjecutarProcesoAsync(pageUrl, headless, usuario, ciAdicional, password, nombre, parametros);
 
                     if (resultado == ResultadoConsulta.SinDatos)
+                    {
+                        LogCliente(usuario, nombre, $"¨Sin datos {intento}/{MaxReintentos} ({parametros.Anio}-{parametros.Mes}, {parametros.Tipo?.Value})");
                         return true; // OK: no hay datos, no es error
+                    }
 
+                    LogCliente(usuario, nombre, $"¨Descarga exitosa {intento}/{MaxReintentos} ({parametros.Anio}-{parametros.Mes}, {parametros.Tipo?.Value})");
                     return true; // OK: descargó
                 }
                 catch (Exception ex)
                 {
                     lastEx = ex;
 
-                    // (opcional) log visual o a archivo
-                    // LoggerHelper.Log(_logPath, $"[{usuario}] Falló intento {intento}/{MaxReintentos} " +
-                    //    $"({parametros.Anio}-{parametros.Mes}, {parametros.Tipo?.Value}): {ex.Message}");
-
-                    // (opcional) pequeña espera entre reintentos para no “pegarle” al SRI
-                    //await Task.Delay(1500);
+                    LogCliente(usuario, nombre, $"Falló intento {intento}/{MaxReintentos} ({parametros.Anio}-{parametros.Mes}, {parametros.Tipo?.Value}): {ex.Message}");
                 }
             }
 
-            // ❗️CLAVE: NO hacer throw aquí. Solo marcar fallo y continuar.
-            // LoggerHelper.Log(_logPath, $"[{usuario}] ❌ Falló la combinación luego de {MaxReintentos} intentos: " +
-            //    $"{parametros.Anio}-{parametros.Mes} Tipo={parametros.Tipo?.Value}. Error: {lastEx?.Message}");
+            LogCliente(usuario, nombre, $"❌ Falló la combinación luego de {MaxReintentos} intentos: {parametros.Anio}-{parametros.Mes} Tipo={parametros.Tipo?.Value}. Error: {lastEx?.Message}");
 
             return false;
         }
@@ -661,5 +659,43 @@ namespace BOT_LITE
                 },
             };
         }
+
+        private void LogCliente(string usuario, string nombre, string mensaje)
+        {
+            string logDirectory = PrepararRutaLog(downloadPath);
+            string sanitizedNombre = SanitizarNombreArchivo(nombre);
+            string fecha = DateTime.Now.ToString("yyyyMMdd");
+            string logFile = $"{usuario}_{sanitizedNombre}_{fecha}.log";
+            string rutaLog = Path.Combine(logDirectory, logFile);
+            string entry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {mensaje}{Environment.NewLine}";
+            File.AppendAllText(rutaLog, entry, Encoding.UTF8);
+        }
+
+        private string PrepararRutaLog(string basePath)
+        {
+            string logFolder = Path.Combine(basePath, LogFolderName);
+
+            if (!Directory.Exists(logFolder))
+                Directory.CreateDirectory(logFolder);
+
+            return logFolder;
+        }
+
+        private string SanitizarNombreArchivo(string nombre)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+                return "sin_nombre";
+
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var builder = new StringBuilder(nombre.Length);
+
+            foreach (char ch in nombre)
+            {
+                builder.Append(invalidChars.Contains(ch) ? '_' : ch);
+            }
+
+            return builder.ToString().Trim();
+        }
+
     }
 }

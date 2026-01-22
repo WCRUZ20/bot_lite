@@ -43,11 +43,22 @@ namespace BOT_LITE
 
         private const int MaxReintentos = 3;
         private const int MinutosCacheLicencia = 10;
+        private const int NumeroHilosProceso = 4;
 
         private enum ResultadoConsulta
         {
             Descargado,
             SinDatos
+        }
+
+        private sealed class ClienteProcesable
+        {
+            public string Usuario { get; set; }
+            public string Nombre { get; set; }
+            public string CiAdicional { get; set; }
+            public string Password { get; set; }
+            public List<DateTime> Periodos { get; set; }
+            public List<TipoComprobante> Tipos { get; set; }
         }
 
         public Principal()
@@ -205,7 +216,7 @@ namespace BOT_LITE
             bool loginExitoso = await WaitHelper.ExistsAsync(
                 session.Page,
                 "a[tooltip='Cerrar sesión']",
-                15000
+                25000
             );
 
             if (!loginExitoso)
@@ -472,35 +483,12 @@ namespace BOT_LITE
                 if (dt == null)
                     throw new InvalidOperationException("No hay clientes cargados para procesar.");
 
-                foreach (DataRow row in dt.Rows)
-                {
-                    _cancellationTokenSource.Token.ThrowIfCancellationRequested();
-                    if (!EsValorYN(row, "Activo"))
-                        continue;
+                var clientes = ConstruirClientesProcesables(dt);
+                var tareas = Enumerable.Range(0, NumeroHilosProceso)
+                    .Select(indice => ProcesarClientesAsync(clientes, indice, _cancellationTokenSource.Token))
+                    .ToList();
 
-                    string usuario = row["Usuario"]?.ToString();
-                    string nombre = row["NombUsuario"]?.ToString();
-                    string ciAdicional = row["ciAdicional"]?.ToString();
-                    string password = row["Clave SRI"]?.ToString();
-
-                    foreach (var periodo in ConstruirPeriodosConsulta(row))
-                    {
-                        _cancellationTokenSource.Token.ThrowIfCancellationRequested();
-                        foreach (var tipo in ObtenerTiposHabilitados(row))
-                        {
-                            _cancellationTokenSource.Token.ThrowIfCancellationRequested();
-                            var parametros = new ParametrosConsulta
-                            {
-                                Anio = periodo.Year.ToString(),
-                                Mes = periodo.Month.ToString(),
-                                Dia = "0",
-                                Tipo = tipo
-                            };
-
-                            await EjecutarProcesoConReintentosAsync(url, false, usuario, ciAdicional, password, nombre, parametros, _cancellationTokenSource.Token);
-                        }
-                    }
-                }
+                await Task.WhenAll(tareas);
 
                 if (mostrarMensajes)
                 {
@@ -535,6 +523,56 @@ namespace BOT_LITE
                 _cancellationTokenSource?.Dispose();
                 _cancellationTokenSource = null;
                 _procesoEnCurso = false;
+            }
+        }
+
+        private List<ClienteProcesable> ConstruirClientesProcesables(DataTable dt)
+        {
+            var clientes = new List<ClienteProcesable>();
+
+            foreach (DataRow row in dt.Rows)
+            {
+                if (!EsValorYN(row, "Activo"))
+                    continue;
+
+                clientes.Add(new ClienteProcesable
+                {
+                    Usuario = row["Usuario"]?.ToString(),
+                    Nombre = row["NombUsuario"]?.ToString(),
+                    CiAdicional = row["ciAdicional"]?.ToString(),
+                    Password = row["Clave SRI"]?.ToString(),
+                    Periodos = ConstruirPeriodosConsulta(row).ToList(),
+                    Tipos = ObtenerTiposHabilitados(row).ToList()
+                });
+            }
+
+            return clientes;
+        }
+
+        private async Task ProcesarClientesAsync(IReadOnlyList<ClienteProcesable> clientes, int indiceHilo, CancellationToken cancellationToken)
+        {
+            for (int i = indiceHilo; i < clientes.Count; i += NumeroHilosProceso)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var cliente = clientes[i];
+
+                foreach (var periodo in cliente.Periodos)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    foreach (var tipo in cliente.Tipos)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var parametros = new ParametrosConsulta
+                        {
+                            Anio = periodo.Year.ToString(),
+                            Mes = periodo.Month.ToString(),
+                            Dia = "0",
+                            Tipo = tipo
+                        };
+
+                        await EjecutarProcesoConReintentosAsync(url, false, cliente.Usuario, cliente.CiAdicional, cliente.Password, cliente.Nombre, parametros, cancellationToken);
+                    }
+                }
             }
         }
 

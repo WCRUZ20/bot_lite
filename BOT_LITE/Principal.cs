@@ -13,6 +13,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
@@ -35,6 +36,7 @@ namespace BOT_LITE
 
         private DateTime? _ultimaEjecucionAutomatica;
         private bool _procesoEnCurso;
+        private CancellationTokenSource _cancellationTokenSource;
         private DateTime? _ultimaValidacionLicencia;
         private LicenseValidationResult _estadoLicencia;
 
@@ -83,10 +85,16 @@ namespace BOT_LITE
 
         private async void btnProceso_Click(object sender, EventArgs e)
         {
+            if (_procesoEnCurso)
+            {
+                SolicitarCancelacionProceso();
+                return;
+            }
+
             await EjecutarProcesoManualAsync();
         }
 
-        private async Task<bool> EjecutarProcesoConReintentosAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros)
+        private async Task<bool> EjecutarProcesoConReintentosAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros, CancellationToken cancellationToken)
         {
             Exception lastEx = null;
 
@@ -94,7 +102,8 @@ namespace BOT_LITE
             {
                 try
                 {
-                    var resultado = await EjecutarProcesoAsync(pageUrl, headless, usuario, ciAdicional, password, nombre, parametros);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var resultado = await EjecutarProcesoAsync(pageUrl, headless, usuario, ciAdicional, password, nombre, parametros, cancellationToken);
 
                     if (resultado == ResultadoConsulta.SinDatos)
                     {
@@ -104,6 +113,10 @@ namespace BOT_LITE
 
                     LogCliente(usuario, nombre, $"¨Descarga exitosa {intento}/{MaxReintentos} ({parametros.Anio}-{parametros.Mes}, {parametros.Tipo?.Value})");
                     return true; // OK: descargó
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -118,13 +131,14 @@ namespace BOT_LITE
             return false;
         }
 
-        private async Task<ResultadoConsulta> EjecutarProcesoAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros)
+        private async Task<ResultadoConsulta> EjecutarProcesoAsync(string pageUrl, bool headless, string usuario, string ciAdicional, string password, string nombre, ParametrosConsulta parametros, CancellationToken cancellationToken)
         {
             PlaywrightManager manager = null;
             BrowserSession session = null;
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var config = new BrowserConfig
                 {
                     Url = pageUrl,
@@ -141,6 +155,8 @@ namespace BOT_LITE
 
                 // 1️⃣ LOGIN
                 await IniciarSesionAsync(session, actions, usuario, ciAdicional, password, nombre);
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // 2️⃣ CONSULTA + DESCARGA
                 return await EjecutarConsultaYDescargaAsync(session, actions, parametros, usuario, nombre);
@@ -457,21 +473,23 @@ namespace BOT_LITE
                 return;
 
             _procesoEnCurso = true;
-            btnProceso.Enabled = false;
-
-            if (!await ValidarLicenciaAsync(mostrarMensajes))
-            {
-                return;
-            }
+            _cancellationTokenSource = new CancellationTokenSource();
+            ActualizarEstadoBotonProceso(true);
 
             try
             {
+                if (!await ValidarLicenciaAsync(mostrarMensajes))
+                {
+                    return;
+                }
+
                 var dt = dtgClientes.DataSource as DataTable;
                 if (dt == null)
                     throw new InvalidOperationException("No hay clientes cargados para procesar.");
 
                 foreach (DataRow row in dt.Rows)
                 {
+                    _cancellationTokenSource.Token.ThrowIfCancellationRequested();
                     if (!EsValorYN(row, "Activo"))
                         continue;
 
@@ -482,8 +500,10 @@ namespace BOT_LITE
 
                     foreach (var periodo in ConstruirPeriodosConsulta(row))
                     {
+                        _cancellationTokenSource.Token.ThrowIfCancellationRequested();
                         foreach (var tipo in ObtenerTiposHabilitados(row))
                         {
+                            _cancellationTokenSource.Token.ThrowIfCancellationRequested();
                             var parametros = new ParametrosConsulta
                             {
                                 Anio = periodo.Year.ToString(),
@@ -492,7 +512,7 @@ namespace BOT_LITE
                                 Tipo = tipo
                             };
 
-                            await EjecutarProcesoConReintentosAsync(url, false, usuario, ciAdicional, password, nombre, parametros);
+                            await EjecutarProcesoConReintentosAsync(url, false, usuario, ciAdicional, password, nombre, parametros, _cancellationTokenSource.Token);
                         }
                     }
                 }
@@ -500,6 +520,14 @@ namespace BOT_LITE
                 if (mostrarMensajes)
                 {
                     MessageBox.Show("Proceso finalizado correctamente", "OK",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch(OperationCanceledException)
+            {
+                if (mostrarMensajes)
+                {
+                    MessageBox.Show("Proceso cancelado por el usuario.", "Cancelado",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
@@ -518,9 +546,34 @@ namespace BOT_LITE
             }
             finally
             {
-                btnProceso.Enabled = true;
+                ActualizarEstadoBotonProceso(false);
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
                 _procesoEnCurso = false;
             }
+        }
+
+        private void SolicitarCancelacionProceso()
+        {
+            if (_cancellationTokenSource == null || _cancellationTokenSource.IsCancellationRequested)
+                return;
+
+            _cancellationTokenSource.Cancel();
+        }
+
+        private void ActualizarEstadoBotonProceso(bool enEjecucion)
+        {
+            if (enEjecucion)
+            {
+                btnProceso.BackColor = Color.Red;
+                btnProceso.Text = "Cancelar";
+                btnProceso.Enabled = true;
+                return;
+            }
+
+            btnProceso.BackColor = Color.LimeGreen;
+            btnProceso.Text = "Ejecutar";
+            btnProceso.Enabled = true;
         }
 
         private async Task ConsultarConRecuperacionCaptchaAsync(IPage page, PageActions actions, string btnBuscarSelector)

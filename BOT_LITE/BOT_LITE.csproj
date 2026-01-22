@@ -129,6 +129,7 @@
     <Compile Include="Automation\PageActions.cs" />
     <Compile Include="Automation\PlaywrightManager.cs" />
     <Compile Include="Automation\WaitHelper.cs" />
+    <Compile Include="Estilos\DataGridViewExtensions.cs" />
     <Compile Include="Interfaces\Configuracion.cs">
       <SubType>Form</SubType>
     </Compile>

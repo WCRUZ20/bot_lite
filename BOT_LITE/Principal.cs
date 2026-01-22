@@ -1,5 +1,6 @@
 ﻿using BOT_LITE.Automation;
 using BOT_LITE.Automation.Models;
+using BOT_LITE.Estilos;
 using BOT_LITE.Interfaces;
 using BOT_LITE.Licensing;
 using Microsoft.Playwright;
@@ -59,6 +60,7 @@ namespace BOT_LITE
         private void Principal_Load(object sender, EventArgs e)
         {
             CargarClientes();
+            EstilizarGridClientes();
         }
 
         private void CargarConfiguracion()
@@ -307,45 +309,27 @@ namespace BOT_LITE
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
-                dtgClientes.AutoGenerateColumns = false;
+                dtgClientes.AutoGenerateColumns = true;
                 dtgClientes.Columns.Clear();
 
                 foreach (DataColumn col in dt.Columns)
                 {
-                    // Detectar columnas Y / N
-                    if (EsColumnaYN(dt, col.ColumnName))
+                    DataGridViewTextBoxColumn txt = new DataGridViewTextBoxColumn
                     {
-                        DataGridViewCheckBoxColumn chk = new DataGridViewCheckBoxColumn
-                        {
-                            Name = col.ColumnName,
-                            HeaderText = col.ColumnName,
-                            DataPropertyName = col.ColumnName,
-                            TrueValue = "Y",
-                            FalseValue = "N",
-                            IndeterminateValue = "N",
-                            Width = 70
-                        };
+                        Name = col.ColumnName,
+                        HeaderText = col.ColumnName,
+                        DataPropertyName = col.ColumnName,
+                        AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+                    };
 
-                        dtgClientes.Columns.Add(chk);
-                    }
-                    else
-                    {
-                        DataGridViewTextBoxColumn txt = new DataGridViewTextBoxColumn
-                        {
-                            Name = col.ColumnName,
-                            HeaderText = col.ColumnName,
-                            DataPropertyName = col.ColumnName,
-                            AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                        };
-
-                        dtgClientes.Columns.Add(txt);
-                    }
+                    dtgClientes.Columns.Add(txt);
                 }
 
                 dtgClientes.DataSource = dt;
-                dtgClientes.AllowUserToAddRows = false;
-                dtgClientes.ReadOnly = false;
-                dtgClientes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+                //dtgClientes.AllowUserToAddRows = false;
+                //dtgClientes.ReadOnly = false;
+                //dtgClientes.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+
             }
         }
 
@@ -354,7 +338,7 @@ namespace BOT_LITE
             foreach (DataRow row in dt.Rows)
             {
                 var val = row[columnName]?.ToString();
-                if (!string.IsNullOrEmpty(val) && val != "Y" && val != "N")
+                if (!string.Equals(val?.Trim(), "Y", StringComparison.OrdinalIgnoreCase))
                     return false;
             }
             return true;
@@ -420,6 +404,7 @@ namespace BOT_LITE
         private void btnActualizar_Click(object sender, EventArgs e)
         {
             CargarClientes();
+            EstilizarGridClientes();
         }
 
         private void btnConfig_Click(object sender, EventArgs e)
@@ -815,6 +800,65 @@ namespace BOT_LITE
 
                 return false;
             }
+        }
+
+        private void EstilizarGridClientes()
+        {
+            var g = dtgClientes;
+
+            // Comportamiento / UX
+            g.ReadOnly = true; // cámbialo según tu necesidad
+            g.AllowUserToAddRows = false;
+            g.AllowUserToDeleteRows = false;
+            g.AllowUserToResizeRows = false;
+            g.MultiSelect = false;
+            g.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            g.EditMode = DataGridViewEditMode.EditOnEnter;
+
+            // Rendimiento / Flicker
+            g.DoubleBuffered(true);
+
+            // Layout
+            g.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            g.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            g.RowTemplate.Height = 34;
+            g.ColumnHeadersHeight = 38;
+            g.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+
+            // Bordes y líneas (minimalista)
+            g.BorderStyle = BorderStyle.None;
+            g.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            g.GridColor = Color.FromArgb(230, 230, 230);
+
+            // Encabezados
+            g.EnableHeadersVisualStyles = false;
+            g.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 248);
+            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(45, 45, 45);
+            g.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 8.0f, FontStyle.Bold);
+            g.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            g.ColumnHeadersDefaultCellStyle.Padding = new Padding(10, 0, 0, 0);
+
+            // Celdas
+            g.DefaultCellStyle.BackColor = Color.White;
+            g.DefaultCellStyle.ForeColor = Color.FromArgb(33, 33, 33);
+            g.DefaultCellStyle.Font = new Font("Segoe UI", 8.0f, FontStyle.Regular);
+            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(232, 240, 254); // azul suave
+            g.DefaultCellStyle.SelectionForeColor = Color.FromArgb(33, 33, 33);
+            g.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            g.DefaultCellStyle.Padding = new Padding(10, 0, 0, 0);
+
+            // Zebra sutil
+            g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(250, 250, 250);
+
+            // Row header (la columna gris de la izquierda) off
+            g.RowHeadersVisible = false;
+
+            // Scrollbar más limpia
+            g.ScrollBars = ScrollBars.Both;
+
+            // Si quieres que no “salte” el último header al ordenar
+            g.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False;
         }
     }
 }

@@ -74,6 +74,12 @@ namespace BOT_LITE
 
         private void Principal_Load(object sender, EventArgs e)
         {
+            if (!AsegurarConfiguracionInicial())
+            {
+                Close();
+                return;
+            }
+
             CargarClientes();
             EstilizarGridClientes();
         }
@@ -93,11 +99,48 @@ namespace BOT_LITE
             }
 
             var basePath = ConfigurationManager.AppSettings["RutaArchivos"];
-            if (string.IsNullOrWhiteSpace(basePath))
+            if (!string.IsNullOrWhiteSpace(basePath))
             {
                 downloadPath = Path.Combine(basePath, DownloadFolderName);
             }
 
+        }
+
+        private bool AsegurarConfiguracionInicial()
+        {
+            while (!TieneConfiguracionMinima())
+            {
+                MessageBox.Show("Debe ingresar la cadena de conexión y la ruta de archivos para continuar.",
+                    "Configuración requerida", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                using (var configuracion = new Configuracion())
+                {
+                    configuracion.ShowDialog(this);
+                }
+
+                CargarConfiguracion();
+
+                if (!TieneConfiguracionMinima())
+                {
+                    var resultado = MessageBox.Show("La configuración sigue incompleta. ¿Desea intentarlo de nuevo?",
+                        "Configuración requerida", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                    if (resultado == DialogResult.No)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TieneConfiguracionMinima()
+        {
+            var connection = ConfigurationManager.AppSettings["SqlConnectionString"];
+            var ruta = ConfigurationManager.AppSettings["RutaArchivos"];
+
+            return !string.IsNullOrWhiteSpace(connection) && !string.IsNullOrWhiteSpace(ruta);
         }
 
         private async void btnProceso_Click(object sender, EventArgs e)

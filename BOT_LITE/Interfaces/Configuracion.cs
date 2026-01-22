@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -20,6 +21,11 @@ namespace BOT_LITE.Interfaces
 
         private void btnguardar_Click(object sender, EventArgs e)
         {
+            if (!ValidarCamposObligatorios())
+            {
+                return;
+            }
+
             var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             var settings = config.AppSettings.Settings;
 
@@ -71,6 +77,33 @@ namespace BOT_LITE.Interfaces
 
         }
 
+        private void btnProbarConexion_Click(object sender, EventArgs e)
+        {
+            var connectionString = txtConn.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                MessageBox.Show("Ingrese una cadena de conexión válida para probar.", "Datos incompletos",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtConn.Focus();
+                return;
+            }
+
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    connection.Open();
+                }
+
+                MessageBox.Show("Conexión exitosa.", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"No se pudo conectar: {ex.Message}", "Error de conexión",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private static void ActualizarSetting(KeyValueConfigurationCollection settings, string key, string value)
         {
             if (settings[key] == null)
@@ -80,6 +113,27 @@ namespace BOT_LITE.Interfaces
             }
 
             settings[key].Value = value ?? string.Empty;
+        }
+
+        private bool ValidarCamposObligatorios()
+        {
+            if (string.IsNullOrWhiteSpace(txtConn.Text))
+            {
+                MessageBox.Show("La cadena de conexión es obligatoria.", "Datos incompletos",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtConn.Focus();
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtRuta.Text))
+            {
+                MessageBox.Show("La ruta de archivos es obligatoria.", "Datos incompletos",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtRuta.Focus();
+                return false;
+            }
+
+            return true;
         }
 
     }

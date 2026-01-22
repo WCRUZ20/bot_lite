@@ -33,6 +33,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.btnguardar = new System.Windows.Forms.Button();
+            this.btnProbarConexion = new System.Windows.Forms.Button();
             this.btnBuscar = new System.Windows.Forms.Button();
             this.txtUrlSri = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
@@ -50,8 +51,18 @@
             // 
             this.txtConn.Location = new System.Drawing.Point(12, 31);
             this.txtConn.Name = "txtConn";
-            this.txtConn.Size = new System.Drawing.Size(463, 20);
+            this.txtConn.Size = new System.Drawing.Size(350, 20);
             this.txtConn.TabIndex = 0;
+            // 
+            // btnProbarConexion
+            // 
+            this.btnProbarConexion.Location = new System.Drawing.Point(368, 29);
+            this.btnProbarConexion.Name = "btnProbarConexion";
+            this.btnProbarConexion.Size = new System.Drawing.Size(107, 23);
+            this.btnProbarConexion.TabIndex = 2;
+            this.btnProbarConexion.Text = "Probar conexión";
+            this.btnProbarConexion.UseVisualStyleBackColor = true;
+            this.btnProbarConexion.Click += new System.EventHandler(this.btnProbarConexion_Click);
             // 
             // txtRuta
             // 
@@ -196,6 +207,7 @@
             this.Controls.Add(this.label3);
             this.Controls.Add(this.txtUrlSri);
             this.Controls.Add(this.btnBuscar);
+            this.Controls.Add(this.btnProbarConexion);
             this.Controls.Add(this.btnguardar);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
@@ -218,6 +230,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button btnguardar;
+        private System.Windows.Forms.Button btnProbarConexion;
         private System.Windows.Forms.Button btnBuscar;
         private System.Windows.Forms.TextBox txtUrlSri;
         private System.Windows.Forms.Label label3;
